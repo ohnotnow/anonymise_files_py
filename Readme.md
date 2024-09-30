@@ -16,8 +16,8 @@ Ensure you have Python installed and `git` available on your system. You will al
 1. **Clone the repository:**
 
    ```bash
-   git clone <your-repo-url>
-   cd <your-repo-name>
+   git clone https://github.com/ohnotnow/anonymise_files_py
+   cd anonymise_files_py
    ```
 
 2. **Set up a virtual environment:**
