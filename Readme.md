@@ -51,7 +51,7 @@ Ensure you have Python installed and `git` available on your system. You will al
 
 ## Usage
 
-To run the anonymization script on a text file, use the following command:
+To run the anonymization script on a singletext file, use the following command:
 
 ```bash
 python main.py --file-path <path-to-your-text-file>
@@ -65,12 +65,19 @@ Replace `<path-to-your-text-file>` with the path to the text file you wish to an
 python main.py --file-path sample.txt
 ```
 
-The script will process the text file, detect and anonymize sensitive information, and print the cleaned data.  If you are
-getting some debug errors from scrubadub, but the anonymisation is working as expected, you can run :
+The script will process the text file, detect and anonymize sensitive information, and print the cleaned data.  If you are getting some debug errors from scrubadub, but the anonymisation is working as expected, you can run :
 
 ```bash
 python main.py --file-path sample.txt 2>/dev/null
 ```
+
+If you have a directory of files, you can use the following command:
+
+```bash
+python main.py --file-dir /path/to/your/directory
+```
+
+This will process all the files in the specified directory and write the anonymised files to the same directory prefixed `anon_`.
 
 ## License
 

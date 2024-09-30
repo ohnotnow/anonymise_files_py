@@ -1,4 +1,4 @@
-import datetime
+import os
 import argparse
 import re
 import scrubadub
@@ -120,7 +120,7 @@ def restore_brand_names(data: str) -> str:
     data = re.sub(r'IBMIBMIBM', 'IBM', data, flags=re.IGNORECASE)
     return data
 
-def main(file_path: str):
+def main(file_path: str, output_file: str|None = None):
     with open(file_path, "r") as f:
         data = f.read()
     candidate_surname = find_candidate_surname(data)
@@ -134,10 +134,21 @@ def main(file_path: str):
     scrubber.add_detector(AddressDetector())
     cleaned_data = scrubber.clean(data)
     cleaned_data = restore_brand_names(cleaned_data)
-    print(cleaned_data)
+    if output_file:
+        with open(output_file, "w") as f:
+            f.write(cleaned_data)
+    else:
+        print(cleaned_data)
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser()
-    argp.add_argument("--file-path", type=str, required=True, help="The path to the text file to anonymise")
+    # mutually exclusive group for file-path and file-dir
+    group = argp.add_mutually_exclusive_group(required=True)
+    group.add_argument("--file-path", type=str, help="The path to the text file to anonymise. Will output to stdout.")
+    group.add_argument("--file-dir", type=str, help="The path to the directory with multiple text files to anonymise. Will write the anonymised files to the same directory prefixed anon_")
     args = argp.parse_args()
-    main(args.file_path)
+    if args.file_path:
+        main(args.file_path)
+    elif args.file_dir:
+        for file in os.listdir(args.file_dir):
+            main(os.path.join(args.file_dir, file), output_file=os.path.join(args.file_dir, f"anon_{file}"))
