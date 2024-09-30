@@ -66,7 +66,7 @@ python main.py --file-path sample.txt
 ```
 
 The script will process the text file, detect and anonymize sensitive information, and print the cleaned data.  If you are
-getting some debug errors from scrubadud, but the anonymisation is working as expected, you can run :
+getting some debug errors from scrubadub, but the anonymisation is working as expected, you can run :
 
 ```bash
 python main.py --file-path sample.txt 2>/dev/null
