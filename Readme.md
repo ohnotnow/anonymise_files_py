@@ -62,14 +62,14 @@ Replace `<path-to-your-text-file>` with the path to the text file you wish to an
 ### Example
 
 ```bash
-python main --file-path sample.txt
+python main.py --file-path sample.txt
 ```
 
 The script will process the text file, detect and anonymize sensitive information, and print the cleaned data.  If you are
 getting some debug errors from scrubadud, but the anonymisation is working as expected, you can run :
 
 ```bash
-python main --file-path sample.txt 2>/dev/null
+python main.py --file-path sample.txt 2>/dev/null
 ```
 
 ## License
