@@ -1,0 +1,4 @@
+scrubadub
+scrubadub_spacy
+pydantic
+pydantic_core
