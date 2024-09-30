@@ -74,22 +74,70 @@ class AddressDetector(Detector):
         for match in address_regex.finditer(text):
             yield AddressFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
 
+def replace_brand_names(data: str) -> str:
+        # case insensitive replacement of 'github' with 'GHGHGH'
+    data = re.sub(r'github', 'GHGHGH', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'gitlab' with 'GLGLGL'
+    data = re.sub(r'gitlab', 'GLGLGL', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'bitbucket' with 'BBBBBB'
+    data = re.sub(r'bitbucket', 'BBBBBB', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'aws' with 'AWSAWSAWS'
+    data = re.sub(r'aws', 'AWSAWSAWS', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'azure' with 'AZUREAZUREAZURE'
+    data = re.sub(r'azure', 'AZUREAZUREAZURE', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'gcp' with 'GCPGCPGCP'
+    data = re.sub(r'gcp', 'GCPGCPGCP', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'oracle' with 'ORCORC'
+    data = re.sub(r'oracle', 'ORCORC', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'microsoft' with 'MCSMCS'
+    data = re.sub(r'microsoft', 'MCSMCS', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'google' with 'GGLGGLGGL'
+    data = re.sub(r'google', 'GGLGGLGGL', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'ibm' with 'IBMIBMIBM'
+    data = re.sub(r'ibm', 'IBMIBMIBM', data, flags=re.IGNORECASE)
+    return data
+
+def restore_brand_names(data: str) -> str:
+    # case insensitive replacement of 'GHGHGH' with 'github'
+    data = re.sub(r'GHGHGH', 'GitHub', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'GLGLGL' with 'gitlab'
+    data = re.sub(r'GLGLGL', 'GitLab', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'BBBBBB' with 'bitbucket'
+    data = re.sub(r'BBBBBB', 'BitBucket', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'AWSAWSAWS' with 'aws'
+    data = re.sub(r'AWSAWSAWS', 'AWS', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'AZUREAZUREAZURE' with 'azure'
+    data = re.sub(r'AZUREAZUREAZURE', 'Azure', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'GCPGCPGCP' with 'gcp'
+    data = re.sub(r'GCPGCPGCP', 'GCP', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'ORCORC' with 'oracle'
+    data = re.sub(r'ORCORC', 'Oracle', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'MCSMCS' with 'microsoft'
+    data = re.sub(r'MCSMCS', 'Microsoft', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'GGLGGLGGL' with 'google'
+    data = re.sub(r'GGLGGLGGL', 'Google', data, flags=re.IGNORECASE)
+    # case insensitive replacement of 'IBMIBMIBM' with 'ibm'
+    data = re.sub(r'IBMIBMIBM', 'IBM', data, flags=re.IGNORECASE)
+    return data
+
 def main(file_path: str):
     with open(file_path, "r") as f:
         data = f.read()
     candidate_surname = find_candidate_surname(data)
     surname_pattern = re.compile(re.escape(candidate_surname), re.IGNORECASE)
     data = surname_pattern.sub("*****", data)
+    data = replace_brand_names(data)
     scrubber = scrubadub.Scrubber()
     scrubber.add_detector(scrubadub_spacy.detectors.SpacyEntityDetector)
     scrubber.add_detector(PhoneNumberDetector())
     scrubber.add_detector(PostcodeDetector())
     scrubber.add_detector(AddressDetector())
     cleaned_data = scrubber.clean(data)
+    cleaned_data = restore_brand_names(cleaned_data)
     print(cleaned_data)
 
 if __name__ == "__main__":
     argp = argparse.ArgumentParser()
-    argp.add_argument("--file-path", type=str, default="", help="The path to the text file to anonymise")
+    argp.add_argument("--file-path", type=str, required=True, help="The path to the text file to anonymise")
     args = argp.parse_args()
     main(args.file_path)
