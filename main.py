@@ -1,10 +1,40 @@
 import os
+import json
 import argparse
 import re
 import scrubadub
 import scrubadub_spacy
 from scrubadub.detectors import Detector
 from scrubadub.filth import Filth
+import scrubadub.post_processors
+import hashlib
+import math
+from collections import defaultdict
+from scrubadub import utils
+class MappingFilthReplacer(scrubadub.post_processors.FilthReplacer):
+    def __init__(self, include_hash=True, hash_salt=None, hash_length=5, replacement_map=None):
+        super().__init__(include_hash=include_hash, hash_salt=hash_salt, hash_length=hash_length)
+        if replacement_map is None:
+            self.replacement_map = {}
+        else:
+            self.replacement_map = replacement_map
+
+    def process_filth(self, filth_list):
+        """Processes the filth to replace the original text and stores the mapping."""
+        for filth_item in filth_list:
+            # Generate the replacement label
+            replacement_label = self.filth_label(filth=filth_item)
+
+            # Extract the hash from the replacement label if it exists
+            if self.include_hash:
+                hash_key = replacement_label
+                # Store the mapping of hash -> original text
+                self.replacement_map[hash_key] = filth_item.text
+
+            # Set the replacement string for this filth
+            filth_item.replacement_string = replacement_label
+
+        return filth_list
 
 def find_candidate_surname(data: str) -> str:
     """
@@ -74,26 +104,31 @@ class AddressDetector(Detector):
         for match in address_regex.finditer(text):
             yield AddressFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
 
+# Custom Filth class for ad-hoc local names and misc items
+class MiscFilth(Filth):
+    type = 'misc'
+
+# Custom Detector for phone numbers
+class MiscDetector(Detector):
+    name = 'misc'
+
+    def iter_filth(self, text, document_name=None):
+        misc_regex = re.compile(
+            r'(northcoders|manchester)', re.IGNORECASE
+        )
+        for match in misc_regex.finditer(text):
+            yield MiscFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
+
 def replace_brand_names(data: str) -> str:
-        # case insensitive replacement of 'github' with 'GHGHGH'
     data = re.sub(r'github', 'GHGHGH', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'gitlab' with 'GLGLGL'
     data = re.sub(r'gitlab', 'GLGLGL', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'bitbucket' with 'BBBBBB'
     data = re.sub(r'bitbucket', 'BBBBBB', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'aws' with 'AWSAWSAWS'
     data = re.sub(r'aws', 'AWSAWSAWS', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'azure' with 'AZUREAZUREAZURE'
     data = re.sub(r'azure', 'AZUREAZUREAZURE', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'gcp' with 'GCPGCPGCP'
     data = re.sub(r'gcp', 'GCPGCPGCP', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'oracle' with 'ORCORC'
     data = re.sub(r'oracle', 'ORCORC', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'microsoft' with 'MCSMCS'
     data = re.sub(r'microsoft', 'MCSMCS', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'google' with 'GGLGGLGGL'
     data = re.sub(r'google', 'GGLGGLGGL', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'ibm' with 'IBMIBMIBM'
     data = re.sub(r'ibm', 'IBMIBMIBM', data, flags=re.IGNORECASE)
     return data
 
@@ -125,18 +160,30 @@ def main(file_path: str, output_file: str|None = None):
         data = f.read()
     candidate_surname = find_candidate_surname(data)
     surname_pattern = re.compile(re.escape(candidate_surname), re.IGNORECASE)
-    data = surname_pattern.sub("*****", data)
+    data = surname_pattern.sub("<b>SURNAME-9a9a9a</b>", data)
     data = replace_brand_names(data)
-    scrubber = scrubadub.Scrubber()
+    replacement_map = {}
+    # Initialize the scrubber with the custom MappingFilthReplacer
+    scrubber = scrubadub.Scrubber(post_processor_list=[
+        MappingFilthReplacer(include_hash=True, hash_salt='example', hash_length=5, replacement_map=replacement_map),
+        scrubadub.post_processors.PrefixSuffixReplacer(prefix='<b>', suffix='</b>'),
+    ])
     scrubber.add_detector(scrubadub_spacy.detectors.SpacyEntityDetector)
     scrubber.add_detector(PhoneNumberDetector())
     scrubber.add_detector(PostcodeDetector())
     scrubber.add_detector(AddressDetector())
-    cleaned_data = scrubber.clean(data)
+    scrubber.add_detector(MiscDetector())
+    cleaned_data = ""
+    for line in data.splitlines():
+        cleaned_data += scrubber.clean(line) + "\n"
+    replacement_map['SURNAME-9a9a9a'] = candidate_surname
+    print(f"Replacement map: {replacement_map}")
     cleaned_data = restore_brand_names(cleaned_data)
     if output_file:
         with open(output_file, "w") as f:
             f.write(cleaned_data)
+        with open(f"{output_file}_mapping.json", "w") as f:
+            json.dump(replacement_map, f, indent=4)
     else:
         print(cleaned_data)
 
