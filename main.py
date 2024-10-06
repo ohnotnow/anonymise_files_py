@@ -105,19 +105,18 @@ class AddressDetector(Detector):
             yield AddressFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
 
 # Custom Filth class for ad-hoc local names and misc items
-class MiscFilth(Filth):
-    type = 'misc'
+class LocalMiscFilth(Filth):
+    type = 'localmisc'
 
-# Custom Detector for phone numbers
-class MiscDetector(Detector):
-    name = 'misc'
+# Custom Detector for ad-hoc local names and misc items
+class LocalMiscDetector(Detector):
+    name = 'localmisc'
+    local_regex = r''
 
     def iter_filth(self, text, document_name=None):
-        misc_regex = re.compile(
-            r'(northcoders|manchester)', re.IGNORECASE
-        )
+        misc_regex = re.compile(self.local_regex, re.IGNORECASE)
         for match in misc_regex.finditer(text):
-            yield MiscFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
+            yield LocalMiscFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
 
 def replace_brand_names(data: str) -> str:
     data = re.sub(r'github', 'GHGHGH', data, flags=re.IGNORECASE)
@@ -155,7 +154,7 @@ def restore_brand_names(data: str) -> str:
     data = re.sub(r'IBMIBMIBM', 'IBM', data, flags=re.IGNORECASE)
     return data
 
-def main(file_path: str, output_file: str|None = None):
+def main(file_path: str, output_file: str|None = None, local_words: list[str] = []):
     with open(file_path, "r") as f:
         data = f.read()
     candidate_surname = find_candidate_surname(data)
@@ -172,7 +171,11 @@ def main(file_path: str, output_file: str|None = None):
     scrubber.add_detector(PhoneNumberDetector())
     scrubber.add_detector(PostcodeDetector())
     scrubber.add_detector(AddressDetector())
-    scrubber.add_detector(MiscDetector())
+    if local_words:
+        local_regex = r'(' + '|'.join(local_words) + r')'
+        misc_detector = LocalMiscDetector()
+        misc_detector.local_regex = local_regex
+        scrubber.add_detector(misc_detector)
     cleaned_data = ""
     for line in data.splitlines():
         cleaned_data += scrubber.clean(line) + "\n"
@@ -194,8 +197,13 @@ if __name__ == "__main__":
     group.add_argument("--file-path", type=str, help="The path to the text file to anonymise. Will output to stdout.")
     group.add_argument("--file-dir", type=str, help="The path to the directory with multiple text files to anonymise. Will write the anonymised files to the same directory prefixed anon_")
     args = argp.parse_args()
+    if os.path.exists('local_words.txt'):
+        with open('local_words.txt', 'r') as f:
+            local_words = [line.strip() for line in f.read().splitlines() if line.strip()]
+    else:
+        local_words = []
     if args.file_path:
-        main(args.file_path)
+        main(args.file_path, local_words=local_words)
     elif args.file_dir:
         for file in os.listdir(args.file_dir):
-            main(os.path.join(args.file_dir, file), output_file=os.path.join(args.file_dir, f"anon_{file}"))
+            main(os.path.join(args.file_dir, file), output_file=os.path.join(args.file_dir, f"anon_{file}"), local_words=local_words)

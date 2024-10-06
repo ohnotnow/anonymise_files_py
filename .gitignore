@@ -4,3 +4,5 @@ venv*
 autogen.*
 .env.*
 test*
+local_words.txt
+
