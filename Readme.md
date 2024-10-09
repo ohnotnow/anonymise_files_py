@@ -79,6 +79,16 @@ python main.py --file-dir /path/to/your/directory
 
 This will process all the files in the specified directory and write the anonymised files to the same directory prefixed `anon_`.
 
+### Local custom filtering
+
+If your data contains specific words or phrases that you want to remove, you can add them to `local_words.txt` and the script will use these words to filter out any text that matches.  Just put one word/phrase per line, eg:
+
+```bash
+company name
+localtown
+brandname
+```
+
 ## License
 
 This project is licensed under the MIT License.
