@@ -11,6 +11,34 @@ import hashlib
 import math
 from collections import defaultdict
 from scrubadub import utils
+
+brand_name_mapping = {
+    "GitHub": "GHGHGH",
+    "GitLab": "GLGLGL",
+    "BitBucket": "BBBBBB",
+    "AWS": "AWESAWESAWES",
+    "Azure": "AZREAZREAZRE",
+    "GCP": "GCPGCPGCP",
+    "Oracle": "ORCORC",
+    "Microsoft": "MCSMCS",
+    "Google": "GGLGGLGGL",
+    "IBM": "IBEMIBEMIBEM",
+    "MySQL": "MyQLMyQLMyQL",
+    "PostgreSQL": "PQLPQLPQL",
+    "Postgres": "PGRPGRPGR",
+    "SQL": "SQSQSQSQ",
+    'Agile': 'AGAGAGAGAG',
+    'SuperTest': 'STSTSTSTST',
+    'Netlify': 'NLNLNLNL',
+    'Software Development': 'SDSDSDSDSD',
+    'NIST': 'NSTNSTNST',
+    'OWASP': 'OWASWOWASOWAS',
+    'Enterprise': 'ENTENTENTE',
+    'Sonarqube': 'SONASONASONA',
+    'Software Engineer': 'SWEWESWESW',
+    'Software': 'SWSWSWSW',
+    'Scrum': 'SCRSCRSCR',
+}
 class MappingFilthReplacer(scrubadub.post_processors.FilthReplacer):
     def __init__(self, include_hash=True, hash_salt=None, hash_length=5, replacement_map=None):
         super().__init__(include_hash=include_hash, hash_salt=hash_salt, hash_length=hash_length)
@@ -93,12 +121,13 @@ class AddressDetector(Detector):
         # Common UK street types
         street_types = [
             r"Street", r"St", r"Road", r"Rd", r"Avenue", r"Ave", r"Lane", r"Ln", r"Drive", r"Dr", r"Close", r"Court", r"Ct",
-            r"Terrace", r"Place", r"Gardens", r"Way", r"Crescent", r"Square", r"Row", r"Park", r"View", r"Walk"
+            r"Terrace", r"Place", r"Gardens", r"Way", r"Crescent", r"Square", r"Row", r"Park", r"View", r"Walk", r"Place",
+
         ]
 
-        # Regex to match any address that ends with a street type
+        # Regex to match any text with a street type
         address_regex = re.compile(
-            r'\b[\w\s.,/-]*\b(?:' + '|'.join(street_types) + r')\b', re.IGNORECASE
+            r'\b(?:' + '|'.join(street_types) + r')\b', re.IGNORECASE
         )
 
         for match in address_regex.finditer(text):
@@ -119,39 +148,16 @@ class LocalMiscDetector(Detector):
             yield LocalMiscFilth(beg=match.start(), end=match.end(), text=match.group(), document_name=document_name)
 
 def replace_brand_names(data: str) -> str:
-    data = re.sub(r'github', 'GHGHGH', data, flags=re.IGNORECASE)
-    data = re.sub(r'gitlab', 'GLGLGL', data, flags=re.IGNORECASE)
-    data = re.sub(r'bitbucket', 'BBBBBB', data, flags=re.IGNORECASE)
-    data = re.sub(r'aws', 'AWSAWSAWS', data, flags=re.IGNORECASE)
-    data = re.sub(r'azure', 'AZUREAZUREAZURE', data, flags=re.IGNORECASE)
-    data = re.sub(r'gcp', 'GCPGCPGCP', data, flags=re.IGNORECASE)
-    data = re.sub(r'oracle', 'ORCORC', data, flags=re.IGNORECASE)
-    data = re.sub(r'microsoft', 'MCSMCS', data, flags=re.IGNORECASE)
-    data = re.sub(r'google', 'GGLGGLGGL', data, flags=re.IGNORECASE)
-    data = re.sub(r'ibm', 'IBMIBMIBM', data, flags=re.IGNORECASE)
+    for brand, replacement in brand_name_mapping.items():
+        replacement = 'REDACTED' + replacement + 'REDACTED'
+        data = re.sub(brand, replacement, data, flags=re.IGNORECASE)
     return data
 
 def restore_brand_names(data: str) -> str:
-    # case insensitive replacement of 'GHGHGH' with 'github'
-    data = re.sub(r'GHGHGH', 'GitHub', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'GLGLGL' with 'gitlab'
-    data = re.sub(r'GLGLGL', 'GitLab', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'BBBBBB' with 'bitbucket'
-    data = re.sub(r'BBBBBB', 'BitBucket', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'AWSAWSAWS' with 'aws'
-    data = re.sub(r'AWSAWSAWS', 'AWS', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'AZUREAZUREAZURE' with 'azure'
-    data = re.sub(r'AZUREAZUREAZURE', 'Azure', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'GCPGCPGCP' with 'gcp'
-    data = re.sub(r'GCPGCPGCP', 'GCP', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'ORCORC' with 'oracle'
-    data = re.sub(r'ORCORC', 'Oracle', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'MCSMCS' with 'microsoft'
-    data = re.sub(r'MCSMCS', 'Microsoft', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'GGLGGLGGL' with 'google'
-    data = re.sub(r'GGLGGLGGL', 'Google', data, flags=re.IGNORECASE)
-    # case insensitive replacement of 'IBMIBMIBM' with 'ibm'
-    data = re.sub(r'IBMIBMIBM', 'IBM', data, flags=re.IGNORECASE)
+    # use the replacement map in reverse
+    for brand, replacement in brand_name_mapping.items():
+        replacement = 'REDACTED' + replacement + 'REDACTED'
+        data = re.sub(replacement, brand, data, flags=re.IGNORECASE)
     return data
 
 def main(file_path: str, output_file: str|None = None, local_words: list[str] = []):
@@ -159,18 +165,18 @@ def main(file_path: str, output_file: str|None = None, local_words: list[str] = 
         data = f.read()
     candidate_surname = find_candidate_surname(data)
     surname_pattern = re.compile(re.escape(candidate_surname), re.IGNORECASE)
-    data = surname_pattern.sub("<b>SURNAME-9a9a9a</b>", data)
+    data = surname_pattern.sub("SURNAME-9a9a9a", data)
     data = replace_brand_names(data)
     replacement_map = {}
     # Initialize the scrubber with the custom MappingFilthReplacer
     scrubber = scrubadub.Scrubber(post_processor_list=[
-        MappingFilthReplacer(include_hash=True, hash_salt='example', hash_length=5, replacement_map=replacement_map),
-        scrubadub.post_processors.PrefixSuffixReplacer(prefix='<b>', suffix='</b>'),
+        MappingFilthReplacer(include_hash=True, hash_salt='blah-de-blah', hash_length=5, replacement_map=replacement_map),
+        scrubadub.post_processors.PrefixSuffixReplacer(prefix='', suffix=''),
     ])
-    scrubber.add_detector(scrubadub_spacy.detectors.SpacyEntityDetector)
     scrubber.add_detector(PhoneNumberDetector())
     scrubber.add_detector(PostcodeDetector())
     scrubber.add_detector(AddressDetector())
+    scrubber.add_detector(scrubadub_spacy.detectors.SpacyEntityDetector)
     if local_words:
         local_regex = r'(' + '|'.join(local_words) + r')'
         misc_detector = LocalMiscDetector()
@@ -178,8 +184,12 @@ def main(file_path: str, output_file: str|None = None, local_words: list[str] = 
         scrubber.add_detector(misc_detector)
     cleaned_data = ""
     for line in data.splitlines():
-        cleaned_data += scrubber.clean(line) + "\n"
+        print(f"line: {line}")
+        cleaned = scrubber.clean(line)
+        print(f"cleaned: {cleaned}")
+        cleaned_data += cleaned + "\n"
     replacement_map['SURNAME-9a9a9a'] = candidate_surname
+
     print(f"Replacement map: {replacement_map}")
     cleaned_data = restore_brand_names(cleaned_data)
     if output_file:
